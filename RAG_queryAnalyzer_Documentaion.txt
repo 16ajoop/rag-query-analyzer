@@ -31,23 +31,23 @@ langchain
 	allows you to build workflows where different nodes perform different tasks.
    my RAG system can look like:
 
-                    START
-                      ↓
-                Query Analyzer
-                      ↓
-              Query Router
-                 ↙       ↘
-        Query Expansion   Decomposition
-                 ↘       ↙
-                  Retrieval
-                      ↓
-                    RRF
-                      ↓
-                  Reranker
-                      ↓
-                Generation
-                      ↓
-                     END
+                                                    START
+                                                      ↓
+                                                Query Analyzer
+                                                      ↓
+                                              Query Router
+                                                ↙       ↘
+                                        Query Expansion   Decomposition
+                                                ↘       ↙
+                                                  Retrieval
+                                                      ↓
+                                                    RRF
+                                                      ↓
+                                                  Reranker
+                                                      ↓
+                                                Generation
+                                                      ↓
+                                                    END
     LangChain = tools
     LangGraph = workflow/orchestration
 
@@ -88,3 +88,48 @@ Configuration / API keys / model settings
 | `langgraph`        | 🗺️ **Workflow**      | Connect analyzer → retrieval → generation |
 | `pydantic`         | 📋 **Structure**     | Define `QueryAnalysis`                    |
 | `python-dotenv`    | 🔐 **Configuration** | Load `.env` settings/secrets              |
+
+
+
+
+
+State:
+  - my workflow has several components :
+
+                      User Query
+                          ↓
+                      Analyzer
+                          ↓
+                      Expansion
+                          ↓
+                      Decomposition
+                          ↓
+                      Retrieval
+
+  - Each component needs to receive information from the previous component.
+  - I need somewhere to store that information. That's what STATE is.
+  - Each LangGraph node can: (nodes are analyser, expansion, decomposition)
+
+    1. Read information from the state.
+    2. Do its job.
+    3. Put its result back into state.
+
+  - So, my state looks like 
+
+                                              ┌─────────────────┐
+                                              │    RAGState     │
+                                              │                 │
+                                              │ original_query  │
+                                              │ analysis        │
+                                              │ expansion       │
+                                              │ decomposition   │
+                                              └────────┬────────┘
+                                                        │
+                                          ┌─────────────┼─────────────┐
+                                          ↓             ↓             ↓
+                                      Analyzer      Expansion    Decomposition
+                                          │             │             │
+                                          └─────────────┴─────────────┘
+                                                        ↓
+                                                  Updated State
+  

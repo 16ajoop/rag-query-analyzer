@@ -1,20 +1,27 @@
-from chains.query_decomposition_chain import query_decomposition_chain
+from graph.workflow import workflow
 
 
-user_query = (
-    "Compare RAG, RLHF, and DPO for reducing hallucinations "
-    "and identify which approach has the strongest experimental evidence."
-)
+user_query = "What is RAG and how does it reduce hallucinations in LLMs?"
 
 
-decomposition = query_decomposition_chain.invoke({
-    "query": user_query
+result = workflow.invoke({
+    "original_query": user_query,
+    "analysis": None,
+    "expansion": None,
+    "decomposition": None,
 })
 
 
-print("\n--- QUERY DECOMPOSITION ---")
-print("Original Query:", decomposition.original_query)
-print("Sub Queries:")
+print("\n--- FINAL STATE ---")
 
-for query in decomposition.sub_queries:
-    print("-", query)
+print("\nOriginal Query:")
+print(result["original_query"])
+
+print("\nAnalysis:")
+print(result["analysis"])
+
+print("\nExpansion:")
+print(result["expansion"])
+
+print("\nDecomposition:")
+print(result["decomposition"])
