@@ -73,3 +73,18 @@ langchain
 
 7. python-dotenv 
 	this is for loading environment variables from .env
+  it contains information regarding my api key's or the model configurations.
+  .env
+    ↓
+python-dotenv
+    ↓
+Configuration / API keys / model settings
+
+| Package            | Remember it as       | my project                                 |
+| ------------------ | -------------------- | -----------------------------------------  |
+| `langchain`        | 🧰 **LLM toolkit**   | Build LLM components                      |
+| `langchain-core`   | 🧱 **Foundation**    | Prompts, chains, interfaces               |
+| `langchain-ollama` | 🌉 **Bridge**        | Connect LangChain → Ollama                |
+| `langgraph`        | 🗺️ **Workflow**      | Connect analyzer → retrieval → generation |
+| `pydantic`         | 📋 **Structure**     | Define `QueryAnalysis`                    |
+| `python-dotenv`    | 🔐 **Configuration** | Load `.env` settings/secrets              |
