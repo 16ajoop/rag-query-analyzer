@@ -10,3 +10,5 @@ langchain-community
 chromadb
 
 langchain-chroma
+
+rank-bm25

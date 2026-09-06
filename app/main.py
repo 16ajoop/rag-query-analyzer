@@ -1,12 +1,25 @@
-from ingestion.document_loader import load_documents
-from ingestion.document_chunker import chunk_documents
-from vectorstore.chroma_store import create_vectorstore
+from graph.workflow import workflow
 
 
-documents = load_documents()
+def main():
+    query = input("\nEnter your question: ")
 
-chunks = chunk_documents(documents)
+    initial_state = {
+        "original_query": query,
+        "analysis": None,
+        "expansion": None,
+        "decomposition": None,
+        "retrieved_documents": None,
+        "reranked_documents": None,
+        "context": None,
+        "answer": None,
+    }
 
-create_vectorstore(chunks)
+    result = workflow.invoke(initial_state)
 
-print("Vector store created successfully!")
+    print("\n========== FINAL ANSWER ==========\n")
+    print(result["answer"])
+
+
+if __name__ == "__main__":
+    main()

@@ -1188,3 +1188,439 @@ Embedding
 Similarity Search
    ↓
 Relevant Chunks
+
+🧠 Remember this distinction
+
+This is an important RAG concept:
+
+Indexing
+
+Documents → Chunks → Embeddings → Vector DB
+
+happens when you prepare your knowledge base.
+
+Retrieval
+
+Query → Query Embedding → Vector DB → Similar Chunks
+
+happens whenever a user asks a question.
+
+
+# retrieval
+BM25 retrieval.
+
+                        Documents
+                        ↓
+                        Load             ✅
+                        ↓
+                        Chunk            ✅
+                        ↓
+                        Embedding        ✅
+                        ↓
+                        Chroma           ✅
+                        ↓
+                        Vector Retrieval ← DONE
+
+
+Vector search vs BM25
+
+Suppose your document contains:
+
+"Retrieval-Augmented Generation (RAG) combines information retrieval with language generation."
+
+User asks:
+
+"What is RAG?"
+
+Vector search is good because it understands semantic meaning.
+
+But imagine the user asks:
+
+"Find information specifically about RLHF."
+
+Here, exact terminology matters.
+
+That's where BM25 helps:
+
+                    Retrieval
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+        Vector Search          BM25
+        semantic meaning       keywords
+             │                   │
+             └─────────┬─────────┘
+                       ↓
+                    Fusion
+
+This is why your assignment calls for both semantic + keyword retrieval.
+
+What is happening here?
+
+First, our chunks are converted into words:
+
+"RAG reduces hallucinations"
+             ↓
+["rag", "reduces", "hallucinations"]
+
+BM25 then builds a keyword-based search index.
+
+When the user asks:
+
+"How does RAG reduce hallucinations?"
+
+we convert that too:
+
+["how", "does", "rag", "reduce", "hallucinations"]
+
+BM25 looks for chunks containing important matching words.
+
+Documents
+    ↓
+Ingestion              ✅
+    ↓
+Chunking (500)         ✅
+    ↓
+Embeddings             ✅
+    ↓
+Vector DB              ✅
+    ↓
+Vector Retrieval       ✅
+    ↓
+BM25 Retrieval         ✅
+
+One important observation
+
+You only have one chunk, so both methods return the same document.
+
+That's expected.
+
+For example, with multiple chunks:
+
+Chunk 1 → RAG introduction
+Chunk 2 → RLHF
+Chunk 3 → DPO
+Chunk 4 → Hallucination evaluation
+Chunk 5 → Verification methods
+
+A query like:
+
+"What are methods for reducing hallucinations?"
+
+might produce different rankings:
+
+Vector Search
+→ Chunk 4
+→ Chunk 5
+→ Chunk 1
+
+BM25
+→ Chunk 1
+→ Chunk 4
+→ Chunk 5
+
+That's where combining them becomes useful.
+
+🚀 Next: Hybrid Retrieval
+
+Your assignment specifically calls for hybrid retrieval:
+
+             User Query
+                  ↓
+          ┌───────┴───────┐
+          ↓               ↓
+       Vector            BM25
+       Search            Search
+          ↓               ↓
+       Results          Results
+          └───────┬───────┘
+                  ↓
+              Fusion
+                  ↓
+                 RRF
+
+RRF (Reciprocal Rank Fusion) is the next concept we'll implement.
+
+But before coding RRF, we'll first modify our test data to contain multiple meaningful chunks. Otherwise, we won't be able to see why hybrid retrieval and RRF are useful.
+
+So the next step will be:
+
+Expand rag.txt into a small realistic RAG dataset → recreate the vector DB → test Vector vs BM25.
+
+Vector Search
+1. Hallucinations
+2. RAG
+3. RLHF + DPO
+
+Vector search understood the meaning of:
+
+“methods can reduce hallucinations”
+
+So it found concepts related to hallucinations and methods.
+
+BM25
+1. Hallucinations
+2. RAG
+3. Hybrid Retrieval + Graph Retrieval
+
+BM25 focuses more on matching words such as:
+
+methods
+reduce
+hallucinations
+language
+models
+
+So its ranking is different.
+
+Why combine them?
+
+Imagine the user asks:
+
+"Compare RAG, RLHF and DPO for reducing hallucinations."
+
+We want:
+
+semantic understanding → Vector
+exact method names → BM25
+
+So instead of choosing one:
+
+Vector OR BM25
+
+we use:
+
+Vector + BM25
+       ↓
+     RRF
+       ↓
+Combined ranking
+
+And RRF is the next thing we're going to implement.
+
+🧠 RRF in simple terms
+
+Suppose the two retrievers give:
+
+Vector:
+
+Rank 1 → Hallucinations
+Rank 2 → RAG
+Rank 3 → RLHF/DPO
+
+and:
+
+BM25:
+
+Rank 1 → Hallucinations
+Rank 2 → RAG
+Rank 3 → Hybrid Retrieval
+
+RRF asks:
+
+"Which documents consistently appear near the top across different retrieval methods?"
+
+A simplified RRF score is:
+
+## score = 1 / (k + rank)
+
+So:
+
+Rank 1 → higher score
+Rank 2 → slightly lower
+Rank 3 → lower
+
+If a document appears near the top in both Vector and BM25, its scores are added.
+
+Conceptually:
+
+             Vector       BM25
+               ↓           ↓
+            Rank list   Rank list
+               ↓           ↓
+               └─────┬─────┘
+                     ↓
+                    RRF
+                     ↓
+              Combined ranking
+
+This is why RRF is useful: we don't need the two retrievers to agree on the exact ranking. We combine their rankings.
+
+pipeline now
+
+You've built a significant portion of the retrieval layer:
+
+                         User Query
+                             ↓
+                    Query Analyzer ✅
+                             ↓
+               Expansion / Decomposition
+                             ↓
+                    ┌────────┴────────┐
+                    ↓                 ↓
+              Vector Search         BM25
+                    ↓                 ↓
+                    └────────┬────────┘
+                             ↓
+                            RRF ✅
+                             ↓
+                       Reranking ← NEXT
+What is reranking?
+
+RRF gives us a candidate list.
+
+For example:
+
+RRF
+ ↓
+10 candidate chunks
+
+But RRF only knows:
+
+"These chunks ranked highly in the retrievers."
+
+It doesn't deeply judge:
+
+"Which chunk is actually the best answer to this particular query?"
+
+A reranker does that.
+
+Conceptually:
+
+Query
+  +
+Retrieved Chunk
+  ↓
+Reranker
+  ↓
+Relevance Score
+
+For example:
+
+Query:
+"What methods reduce hallucinations?"
+
+Candidate A → 0.94
+Candidate B → 0.81
+Candidate C → 0.63
+Candidate D → 0.41
+
+Then we keep the highest-scoring chunks.
+
+So the next pipeline becomes:
+
+Vector ──┐
+         ├── RRF ──→ Candidate chunks ──→ Reranker
+BM25 ────┘
+
+
+🧠 What is the reranker doing?
+
+RRF has already given us candidates:
+
+RRF
+ ↓
+Candidate 1
+Candidate 2
+Candidate 3
+Candidate 4
+Candidate 5
+
+Now we send each candidate + the original query to the LLM:
+
+Query + Document 1
+       ↓
+    llama3.2
+       ↓
+      9/10
+
+Query + Document 2
+       ↓
+    llama3.2
+       ↓
+      6/10
+
+Query + Document 3
+       ↓
+    llama3.2
+       ↓
+      8/10
+
+Then:
+
+9/10 → Document 1
+8/10 → Document 3
+6/10 → Document 2
+
+We return the highest-scoring documents.
+
+Now your retrieval pipeline is complete
+User Query
+    ↓
+Query Analyzer
+    ↓
+Expansion / Decomposition
+    ↓
+┌───────────────┬───────────────┐
+│               │
+Vector          BM25
+Search          Search
+│               │
+└───────┬───────┘
+        ↓
+       RRF
+        ↓
+    Reranker
+        ↓
+  Context Builder
+        ↓
+    Final Context
+        ↓
+   LLM Generation  ← next
+
+The next step is the final LLM Generation, where we'll take:
+
+User Query + Final Context
+          ↓
+       llama3.2
+          ↓
+      Final Answer
+
+      🚀 Next: LLM Generation
+
+Now we're at the final major stage:
+
+User Query
+    ↓
+Query Analyzer
+    ↓
+Expansion / Decomposition
+    ↓
+Vector + BM25
+    ↓
+RRF
+    ↓
+Reranker
+    ↓
+Context Builder
+    ↓
+⭐ LLM Generation
+    ↓
+Final Answer
+
+
+Retrieve relevant information → give it to the LLM → generate a grounded answer.
+
+You've already tested:
+
+✅ Query Analyzer
+✅ Query Expansion
+✅ Query Decomposition
+✅ Document Ingestion
+✅ Chunking
+✅ Embeddings
+✅ Vector Retrieval
+✅ BM25
+✅ RRF
+✅ Reranking
+✅ Context Builder
