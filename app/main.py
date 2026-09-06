@@ -1,7 +1,12 @@
 from graph.workflow import workflow
 
 
-user_query = "What is RAG and how does it reduce hallucinations in LLMs?"
+user_query = """
+What is RAG and how does retrieval-augmented generation compare with
+other methods for reducing hallucinations in large language models?
+Explain the differences between RAG, knowledge grounding, and
+external knowledge retrieval.
+"""
 
 
 result = workflow.invoke({
