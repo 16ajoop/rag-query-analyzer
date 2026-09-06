@@ -1,32 +1,12 @@
-from graph.workflow import workflow
+from ingestion.document_loader import load_documents
+from ingestion.document_chunker import chunk_documents
+from vectorstore.chroma_store import create_vectorstore
 
 
-user_query = """
-What is RAG and how does retrieval-augmented generation compare with
-other methods for reducing hallucinations in large language models?
-Explain the differences between RAG, knowledge grounding, and
-external knowledge retrieval.
-"""
+documents = load_documents()
 
+chunks = chunk_documents(documents)
 
-result = workflow.invoke({
-    "original_query": user_query,
-    "analysis": None,
-    "expansion": None,
-    "decomposition": None,
-})
+create_vectorstore(chunks)
 
-
-print("\n--- FINAL STATE ---")
-
-print("\nOriginal Query:")
-print(result["original_query"])
-
-print("\nAnalysis:")
-print(result["analysis"])
-
-print("\nExpansion:")
-print(result["expansion"])
-
-print("\nDecomposition:")
-print(result["decomposition"])
+print("Vector store created successfully!")

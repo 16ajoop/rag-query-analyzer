@@ -4,3 +4,9 @@ langchain-ollama
 langgraph
 pydantic
 python-dotenv
+
+langchain-community
+
+chromadb
+
+langchain-chroma

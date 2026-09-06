@@ -849,8 +849,8 @@ The project has completed the **query-processing and workflow foundation**.
 
 Document Processing
         │
-        ├── Ingestion          ⏳
-        ├── Chunking           ⏳
+        ├── Ingestion          ✅
+        ├── Chunking           ✅
         ├── Embeddings         ⏳
         └── Vector DB          ⏳
         
@@ -902,3 +902,289 @@ Context Builder
    ↓
 LLM
 ```
+
+
+## Documents side:
+
+Documents
+   ↓
+Ingestion
+   ↓
+Chunking
+   ↓
+Embeddings
+   ↓
+Vector DB
+
+# What is chunking?
+
+Suppose we have a large document:
+
+Document
+│
+├── Introduction
+├── RAG architecture
+├── Retrieval
+├── Embeddings
+├── Hallucinations
+├── Evaluation
+└── Conclusion
+
+We don't want to put the entire document into the vector database as one huge piece.
+
+Instead:
+
+Document
+   ↓
+Chunking
+   ↓
+┌──────────────┐
+│   Chunk 1    │
+├──────────────┤
+│   Chunk 2    │
+├──────────────┤
+│   Chunk 3    │
+├──────────────┤
+│   Chunk 4    │
+└──────────────┘
+
+Each chunk can then receive its own embedding.
+
+Why not just use the whole document?
+
+Imagine the user asks:
+
+"How does RAG reduce hallucinations?"
+
+If your document is 50 pages long, retrieving the entire 50 pages is inefficient.
+
+Instead, we want something like:
+
+Query
+ ↓
+"How does RAG reduce hallucinations?"
+ ↓
+Vector search
+ ↓
+Chunk 17 ← relevant
+Chunk 32 ← relevant
+Chunk 41 ← relevant
+
+Then only those relevant pieces are sent further down the pipeline.
+
+The important concept: chunk size
+
+We need to decide how much text goes into each chunk.
+
+For example:
+
+chunk_size = 500
+
+roughly means:
+
+Each chunk can contain around 500 characters/tokens depending on the splitter.
+
+What about overlap?
+
+There's another important concept:
+
+Chunk 1
+████████████████████
+
+             ████████████████████
+             Chunk 2
+
+A small part of Chunk 1 is repeated in Chunk 2.
+
+This is called chunk overlap.
+
+Why?
+
+Because important information can sit exactly at the boundary:
+
+Chunk 1:
+"RAG retrieves external information and provides it..."
+
+Chunk 2:
+"...provides it to the language model as context."
+
+Without overlap, the meaning might get separated.
+
+# Embeddings
+
+Think of a chunk like:
+"RAG retrieves relevant information from an external knowledge source..."
+
+An embedding model converts that text into a vector such as:
+[0.021, -0.184, 0.736, 0.092, ...] The actual vector will have many dimensions.
+
+We can use an Ollama embedding model locally.
+A commonly used choice is:
+nomic-embed-text
+
+LLM ≠ Embedding model
+They perform different jobs.
+
+Next step: Create the embedding model
+
+Our pipeline is currently:
+
+                                        Document
+                                        ↓
+                                        Load
+                                        ↓
+                                        Chunking
+                                        ↓
+                                        Embedding  ← WE ARE HERE
+                                        ↓
+                                        Vector DB
+
+nomic-embed-text converted the meaning of that text into 768 numbers:
+
+Text
+ ↓
+nomic-embed-text
+ ↓
+[768 numbers] Those numbers are not something we interpret individually nstead, we compare vectors.
+
+For example:
+
+"RAG reduces hallucinations"
+        ↓
+     Vector A
+
+"Retrieval augmented generation helps prevent false answers"
+        ↓
+     Vector B
+
+Because these sentences have similar meanings, their vectors should be close to each other.
+
+Whereas:
+
+"How to cook biryani"
+        ↓
+     Vector C
+
+would be much farther away.
+
+That's the fundamental idea behind semantic/vector search.
+
+We need to connect our existing chunks to the embedding model:
+                        rag.txt
+                        ↓
+                        load_documents()
+                        ↓
+                        chunk_documents()
+                        ↓
+                        chunks
+                        ↓
+                        nomic-embed-text
+                        ↓
+                        vector representations
+
+Then we'll store those vectors in a vector database.
+
+
+# Vector Database
+We'll use Chroma because it's simple, local, and suitable for learning this RAG pipeline
+
+Right now we have:
+                                            rag.txt
+                                            ↓
+                                            Loader
+                                            ↓
+                                            Chunks
+                                            ↓
+                                            nomic-embed-text
+                                            ↓
+                                            768-dimensional vectors
+
+
+Now Chroma will store: 
+┌─────────────────────────────────┐
+│         Vector Database         │
+│                                 │
+│ Chunk 1                         │
+│   ├── Text                      │
+│   ├── Embedding [768 numbers]   │
+│   └── Metadata                  │
+│                                 │
+│ Chunk 2                         │
+│   ├── Text                      │
+│   ├── Embedding [768 numbers]   │
+│   └── Metadata                  │
+└─────────────────────────────────┘
+
+The important idea is:
+
+The vector database stores the chunks together with their embeddings so that we can later search for chunks whose meanings are closest to a user's query.
+
+now have:
+
+Documents
+    ↓
+Loading              ✅
+    ↓
+Chunking             ✅
+    ↓
+Embedding            ✅
+    ↓
+Chroma Vector DB     ✅
+
+The next important step is to actually search the Vector DB.
+
+What we'll test
+
+Suppose the user asks:
+
+How does RAG reduce hallucinations?
+
+We'll do:
+
+                                    User Query
+                                        ↓
+                                    nomic-embed-text
+                                        ↓
+                                    Query Vector
+                                        ↓
+                                    Chroma
+                                        ↓
+                                    Find most similar chunks
+                                        ↓
+                                    Relevant document
+
+This is your first real semantic retrieval step.
+
+We'll create a retrieval function that takes a query and returns the most relevant chunks.
+
+The vector database should be created during the ingestion/indexing stage, not every time a user searches.
+
+Our architecture should be:
+                 INDEXING TIME
+                     
+Documents
+   ↓
+Load
+   ↓
+Chunk
+   ↓
+Embedding
+   ↓
+Chroma DB
+        │
+        │
+        ▼
+   ┌───────────┐
+   │ Vector DB │
+   └───────────┘
+        │
+        │
+                 QUERY TIME
+        │
+User Query
+   ↓
+Embedding
+   ↓
+Similarity Search
+   ↓
+Relevant Chunks

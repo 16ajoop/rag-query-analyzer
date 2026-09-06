@@ -1,0 +1,8 @@
+Retrieval-Augmented Generation (RAG) combines information retrieval
+with language generation.
+
+RAG retrieves relevant information from an external knowledge source
+and provides that information to a language model as context.
+
+This can help reduce hallucinations because the model can use
+retrieved information when generating an answer.
