@@ -163,24 +163,24 @@ The highest-ranked chunks are combined into the final context and provided to th
 
 ## Project Structure
 
-rag-query-analyzer/
-│
-├── agent/
-│   ├── graph.py
-│   ├── states.py
-│   ├── prompts.py
-│   └── tools.py
-│
-├── data/
-│   └── documents/
-│
-├── generated_project/
-│
-├── main.py
-├── requirements.txt
-├── .env
-├── .gitignore
-└── README.md
+        rag-query-analyzer/
+        |
+        |── agent/
+        |   ├── graph.py
+        │   ├── states.py
+        │   ├── prompts.py
+        │   └── tools.py
+        │
+        ├── data/
+        │   └── documents/
+        │
+        ├── generated_project/
+        │
+        ├── main.py
+        ├── requirements.txt
+        ├── .env
+        ├── .gitignore
+        └── README.md
 
 ## Project Outcome
 
